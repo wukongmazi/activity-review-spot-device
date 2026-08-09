@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>活动复盘找茬器 · 活动健康度诊断工具</title>
+<style>
+  :root{
+    --bg:#f4f6fb;
+    --panel:#ffffff;
+    --ink:#1b2333;
+    --ink-soft:#5a647a;
+    --ink-faint:#9099ad;
+    --line:#e6eaf2;
+    --brand:#2f6bff;
+    --brand-soft:#eaf1ff;
+    --good:#12a150;
+    --good-soft:#e6f7ee;
+    --warn:#e8912b;
+    --warn-soft:#fdf1df;
+    --bad:#e5484d;
+    --bad-soft:#fdeaea;
+    --radius:14px;
+    --shadow:0 8px 30px rgba(28,40,80,.07);
+    --shadow-sm:0 2px 10px rgba(28,40,80,.05);
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,-apple-system,sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1240px;margin:0 auto;padding:0 22px 64px}
+
+  /* Header */
+  header.top{
+    background:linear-gradient(120deg,#1f3a86 0%,#2f6bff 55%,#4f8bff 100%);
+    color:#fff;padding:26px 0 30px;margin-bottom:26px;
+    box-shadow:0 6px 24px rgba(47,107,255,.22);
+  }
+  .top-inner{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .logo{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:24px;backdrop-filter:blur(4px)}
+  .top h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.5px}
+  .top p{margin:2px 0 0;font-size:13px;opacity:.9}
+  .top .tag{margin-left:auto;font-size:12px;background:rgba(255,255,255,.15);padding:6px 12px;border-radius:20px;white-space:nowrap}
+
+  .grid{display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start}
+  @media(max-width:960px){.grid{grid-template-columns:1fr}}
+
+  .panel{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line)}
+  .panel-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:9px}
+  .panel-h .n{width:22px;height:22px;border-radius:7px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .panel-h h2{font-size:15px;margin:0;font-weight:700}
+  .panel-h .sub{font-size:12px;color:var(--ink-faint);margin-left:auto}
+  .panel-b{padding:18px 20px}
+
+  label.fld{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin:14px 0 7px}
+  label.fld:first-child{margin-top:0}
+  select,input{
+    width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:10px;
+    background:#fbfcfe;color:var(--ink);outline:none;transition:.15s;font-family:inherit;
+  }
+  select:focus,input:focus{border-color:var(--brand);background:#fff;box-shadow:0 0 0 3px var(--brand-soft)}
+
+  .type-picker{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:2px}
+  .type-opt{border:1.5px solid var(--line);border-radius:11px;padding:11px 10px;cursor:pointer;text-align:center;transition:.15s;background:#fbfcfe}
+  .type-opt .ic{font-size:20px;display:block;margin-bottom:3px}
+  .type-opt .nm{font-size:13px;font-weight:600}
+  .type-opt .ds{font-size:11px;color:var(--ink-faint);margin-top:1px}
+  .type-opt:hover{border-color:#b9c8ef}
+  .type-opt.on{border-color:var(--brand);background:var(--brand-soft);box-shadow:0 0 0 3px var(--brand-soft)}
+
+  .stage-rows{margin-top:4px}
+  .stage-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .stage-row .lab{width:74px;font-size:13px;font-weight:600;color:var(--ink-soft);display:flex;align-items:center;gap:5px;flex-shrink:0}
+  .stage-row .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .stage-row input{flex:1}
+
+  .btn{
+    display:block;width:100%;margin-top:18px;padding:13px;border:none;border-radius:11px;
+    background:var(--brand);color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;
+    box-shadow:0 6px 16px rgba(47,107,255,.28);font-family:inherit;
+  }
+  .btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn.ghost{background:#fff;color:var(--brand);border:1.5px solid var(--brand);box-shadow:none;margin-top:9px}
+  .hint{font-size:12px;color:var(--ink-faint);margin-top:10px;line-height:1.6}
+
+  /* Result side */
+  .empty{
+    background:var(--panel);border-radius:var(--radius);border:1px dashed #cbd5ea;
+    padding:70px 30px;text-align:center;color:var(--ink-faint);box-shadow:var(--shadow-sm)
+  }
+  .empty .big{font-size:52px;margin-bottom:12px;opacity:.6}
+  .empty h3{color:var(--ink-soft);font-size:17px;margin:0 0 6px}
+  .empty p{font-size:13px;margin:0;max-width:420px;margin-inline:auto}
+
+  .result{display:none;flex-direction:column;gap:22px}
+  .result.show{display:flex}
+
+  /* verdict banner */
+  .verdict{border-radius:var(--radius);padding:18px 22px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow-sm)}
+  .verdict .score{width:70px;height:70px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+  .verdict .score b{font-size:26px;line-height:1}
+  .verdict .score span{font-size:10px;opacity:.9}
+  .verdict .txt h3{margin:0 0 4px;font-size:17px}
+  .verdict .txt p{margin:0;font-size:13px;color:var(--ink-soft)}
+  .v-good{background:var(--good-soft)}.v-good .score{background:var(--good)}
+  .v-warn{background:var(--warn-soft)}.v-warn .score{background:var(--warn)}
+  .v-bad{background:var(--bad-soft)}.v-bad .score{background:var(--bad)}
+
+  /* funnel */
+  .funnel-wrap{overflow-x:auto;overflow-y:visible}
+  .funnel{display:flex;align-items:stretch;gap:0;min-width:640px;padding:28px 0 6px}
+  .fstage{flex:1;display:flex;flex-direction:column;align-items:center;position:relative}
+  .fbar-box{width:100%;height:150px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:0 8px}
+  .fbar{width:100%;border-radius:9px 9px 4px 4px;background:linear-gradient(180deg,#5f8fff,#2f6bff);position:relative;transition:height .6s cubic-bezier(.2,.8,.2,1);min-height:8px;display:flex;align-items:flex-start;justify-content:center}
+  .fbar .cnt{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;background:rgba(255,255,255,.9);padding:0 4px;border-radius:5px}
+  .fbar.anom{background:linear-gradient(180deg,#f2787c,#e5484d);box-shadow:0 0 0 3px var(--bad-soft)}
+  .fstage .snm{font-size:13px;font-weight:600;margin-top:9px;color:var(--ink-soft)}
+  .conv{position:absolute;top:56px;right:-1px;transform:translateX(50%);z-index:3;text-align:center;width:88px}
+  .conv .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:#eef2fb;color:var(--ink-soft);border:1px solid var(--line);white-space:nowrap}
+  .conv .pill.down{background:var(--bad-soft);color:var(--bad);border-color:#f7c9cb}
+  .conv .pill.up{background:var(--good-soft);color:var(--good);border-color:#bfe6cf}
+  .conv .base{font-size:10px;color:var(--ink-faint);margin-top:2px}
+  .conv .arw{font-size:11px;color:var(--ink-faint);margin-bottom:1px}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-faint);margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+  /* causes */
+  .cause{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#fff}
+  .cause:last-child{margin-bottom:0}
+  .cause-h{display:flex;align-items:center;gap:9px;margin-bottom:8px;flex-wrap:wrap}
+  .cause-h .stg{font-size:13px;font-weight:700;background:var(--bad-soft);color:var(--bad);padding:3px 10px;border-radius:7px}
+  .cause-h .dev{font-size:12px;font-weight:700;color:var(--bad)}
+  .cause-h .dim{font-size:12px;color:var(--ink-faint);margin-left:auto}
+  .cause-body{font-size:13px;color:var(--ink-soft);line-height:1.7}
+  .cause-body .cn{display:flex;align-items:flex-start;gap:9px;margin-bottom:7px}
+  .cause-body .cn:last-child{margin-bottom:0}
+  .cause-body .cd{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;flex-shrink:0;margin-top:1px}
+  .cd-hi{background:var(--bad-soft);color:var(--bad)}
+  .cd-md{background:var(--warn-soft);color:var(--warn)}
+  .cd-lo{background:#eef2fb;color:var(--ink-faint)}
+
+  /* improvement cards */
+  .filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .filter button{font-size:12px;font-weight:600;padding:7px 14px;border-radius:20px;border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;transition:.15s;font-family:inherit}
+  .filter button:hover{border-color:#b9c8ef}
+  .filter button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .filter button.on.win{background:var(--good);border-color:var(--good)}
+  .filter button.on.hard{background:var(--warn);border-color:var(--warn)}
+  .filter button.on.optim{background:var(--brand);border-color:var(--brand)}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  @media(max-width:1100px){.cards{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:12px;padding:15px 16px;background:#fff;box-shadow:var(--shadow-sm);position:relative;transition:.15s}
+  .card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+  .card .rank{position:absolute;top:14px;right:14px;font-size:11px;color:var(--ink-faint);font-weight:700}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;margin-bottom:10px}
+  .b-win{background:var(--good-soft);color:var(--good)}
+  .b-hard{background:var(--warn-soft);color:var(--warn)}
+  .b-norm{background:var(--brand-soft);color:var(--brand)}
+  .card h4{margin:0 0 7px;font-size:15px;line-height:1.4;padding-right:34px}
+  .card .exp{font-size:13px;color:var(--ink-soft);line-height:1.65;margin:0 0 12px}
+  .card .metrics{display:flex;gap:8px;flex-wrap:wrap;font-size:11px}
+  .card .m{display:flex;align-items:center;gap:4px;color:var(--ink-faint)}
+  .card .m b{color:var(--ink-soft)}
+  .card .gain{font-size:12px;font-weight:700;color:var(--good);margin-top:10px;display:flex;align-items:center;gap:5px;padding-top:10px;border-top:1px dashed var(--line)}
+  .bars{display:flex;gap:2px;margin-left:2px}
+  .bars i{width:5px;height:11px;border-radius:1px;background:#dbe3f2}
+  .bars i.f{background:var(--brand)}
+  .bars.imp i.f{background:var(--good)}
+  .bars.dif i.f{background:var(--warn)}
+
+  footer{text-align:center;color:var(--ink-faint);font-size:12px;margin-top:34px;line-height:1.8}
+  .toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);background:var(--bad);color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .section-title{font-size:15px;font-weight:700;margin:0 0 3px}
+  .section-desc{font-size:12px;color:var(--ink-faint);margin:0 0 4px}
+
+  /* verdict action bar */
+  .verdict{position:relative}
+  .verdict .acts{margin-left:auto;display:flex;gap:9px;flex-shrink:0}
+  .verdict .acts button{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:9px 15px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;transition:.15s;background:var(--ink);color:#fff;box-shadow:0 4px 12px rgba(28,40,80,.16)}
+  .verdict .acts button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  @media(max-width:640px){.verdict{flex-wrap:wrap}.verdict .acts{margin-left:0;width:100%}.verdict .acts button{flex:1;justify-content:center}}
+
+  /* back to top */
+  #backTop{position:fixed;right:26px;bottom:30px;width:46px;height:46px;border-radius:50%;border:none;background:var(--brand);color:#fff;font-size:20px;cursor:pointer;box-shadow:0 6px 20px rgba(47,107,255,.4);opacity:0;visibility:hidden;transform:translateY(14px);transition:.25s;z-index:90;display:flex;align-items:center;justify-content:center}
+  #backTop.show{opacity:1;visibility:visible;transform:translateY(0)}
+  #backTop:hover{filter:brightness(1.08);transform:translateY(-2px)}
+
+  /* print / PDF */
+  @media print{
+    @page{size:A4;margin:12mm}
+    body{background:#fff}
+    header.top{box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .top .tag,#inputPanel,.filter,.verdict .acts,#backTop,.toast{display:none !important}
+    .grid{display:block}
+    .wrap{padding:0}
+    .panel,.card,.verdict,.cause{break-inside:avoid;box-shadow:none;border:1px solid var(--line)}
+    .cards{grid-template-columns:1fr 1fr}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="logo">🔍</div>
+    <div>
+      <h1>活动复盘找茬器</h1>
+      <p>面向运营的活动健康度诊断工具 · 让复盘会从「朗读数据」变为「决策会议」</p>
+    </div>
+    <div class="tag">🚀 内置行业基线 · 无需配置指标</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <!-- LEFT: INPUT -->
+    <div class="panel" id="inputPanel" style="position:sticky;top:18px">
+      <div class="panel-h"><span class="n">1</span><h2>录入活动数据</h2></div>
+      <div class="panel-b">
+        <label class="fld">活动类型（自动匹配漏斗模板）</label>
+        <div class="type-picker" id="typePicker"></div>
+
+        <label class="fld">投放渠道（对比该渠道历史均值）</label>
+        <select id="channel"></select>
+
+        <label class="fld">活动名称（选填）</label>
+        <input id="actName" placeholder="如：双11社群裂变活动" />
+
+        <label class="fld" style="margin-top:18px">各环节实际数据（人次）</label>
+        <div class="stage-rows" id="stageRows"></div>
+
+        <button class="btn" id="runBtn">开始诊断 · 定位卡脖子环节</button>
+        <button class="btn ghost" id="demoBtn">载入示例数据</button>
+        <p class="hint">💡 只需填写各环节真实人次，系统自动计算转化率并对比同渠道同类型活动的历史均值，定位显著下跌的环节。</p>
+      </div>
+    </div>
+
+    <!-- RIGHT: RESULT -->
+    <div>
+      <div class="empty" id="emptyState">
+        <div class="big">📊</div>
+        <h3>等待诊断</h3>
+        <p>选择活动类型与渠道、填入各环节数据后点击「开始诊断」，AI 将自动定位转化漏斗中的卡脖子环节，并输出带优先级的改进清单。</p>
+      </div>
+
+      <div class="result" id="result">
+        <!-- verdict -->
+        <div class="verdict" id="verdict"></div>
+
+        <!-- funnel -->
+        <div class="panel">
+          <div class="panel-h"><span class="n">2</span><h2>转化漏斗诊断</h2><span class="sub" id="funnelSub"></span></div>
+          <div class="panel-b">
+            <div class="funnel-wrap"><div class="funnel" id="funnel"></div></div>
+            <div class="legend">
+              <span><i style="background:#2f6bff"></i>各环节留存人次</span>
+              <span><i style="background:#e5484d"></i>显著下跌环节（偏差超阈值）</span>
+              <span>转化率气泡显示：当前值 vs 历史均值</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- causes -->
+        <div class="panel">
+          <div class="panel-h"><span class="n">3</span><h2>原因推测</h2><span class="sub">附置信度 · 覆盖文案/时机/门槛/激励</span></div>
+          <div class="panel-b" id="causes"></div>
+        </div>
+
+        <!-- improvements -->
+        <div class="panel">
+          <div class="panel-h"><span class="n">4</span><h2>改进清单</h2><span class="sub">按影响 × 难度双维度排序</span></div>
+          <div class="panel-b">
+            <div class="filter" id="filter">
+              <button data-f="all" class="on">全部</button>
+              <button data-f="win" class="win">⚡ 速赢项（高影响·低难度）</button>
+              <button data-f="hard" class="hard">🛠 攻坚项（高影响·高难度）</button>
+              <button data-f="optim" class="optim">🎯 优化项（常规改进）</button>
+            </div>
+            <div class="cards" id="cards"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    活动复盘找茬器 · 诊断逻辑基于行业漏斗基线 + 偏差检测，结果为辅助决策参考<br/>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+<button id="backTop" title="回到顶部" aria-label="回到顶部">↑</button>
+
+<script>
+/* ============================================================
+   数据模型：漏斗模板 + 渠道历史均值基线库
+   ============================================================ */
+const STAGES = ["曝光","点击","参与","转化","分享"];
+const STAGE_COLORS = ["#8aa6e8","#5f8fff","#2f6bff","#1f4fd0","#12a150"];
+// 4 段转化率名称（相邻环节）
+const TRANS = [
+  {from:"曝光",to:"点击",name:"点击率"},
+  {from:"点击",to:"参与",name:"参与率"},
+  {from:"参与",to:"转化",name:"转化率"},
+  {from:"转化",to:"分享",name:"分享率"},
+];
+
+// 各活动类型的标准漏斗基线转化率（相邻环节，%）
+const TYPE_BASE = {
+  fission:{ nm:"裂变", ic:"🔗", ds:"曝光→分享", rates:[8, 45, 30, 25] },
+  seckill:{ nm:"秒杀", ic:"⚡", ds:"限时抢购",  rates:[12, 55, 40, 8]  },
+  checkin:{ nm:"打卡", ic:"📅", ds:"持续参与",  rates:[10, 50, 60, 15] },
+  lottery:{ nm:"抽奖", ic:"🎁", ds:"即时激励",  rates:[15, 60, 35, 12] },
+};
+
+// 渠道对基线的调节系数（贴近真实：社群/企微更精准，抖音/短信更宽泛）
+const CHANNELS = {
+  "微信社群":1.15, "企业微信":1.20, "公众号":1.05, "微信朋友圈":1.00,
+  "小红书":0.95, "App推送":1.10, "抖音":0.85, "短信":0.72,
+};
+
+// 显著下跌阈值（转化率相对基线的偏差）
+const THRESHOLD = -0.15; // 低于历史均值 15% 视为显著下跌
+
+// 各活动类型 · 各环节的原因推测规则库
+// 维度：文案吸引力 / 时机选择 / 门槛设置 / 激励机制
+const CAUSE_RULES = {
+  "点击率":[
+    {dim:"文案吸引力",txt:"标题/主视觉缺乏钩子，用户在信息流中未被吸引，划走率高",base:0.75},
+    {dim:"时机选择",txt:"推送时段避开了目标人群活跃高峰，触达即沉默",base:0.55},
+    {dim:"激励机制",txt:"首屏未前置利益点（如「立减」「免费领」），点击动机不足",base:0.6},
+  ],
+  "参与率":[
+    {dim:"门槛设置",txt:"活动规则复杂或步骤过多，用户点进后因理解成本高而流失",base:0.78},
+    {dim:"门槛设置",txt:"落地页加载慢或需强制授权/注册，参与前置障碍过高",base:0.62},
+    {dim:"文案吸引力",txt:"落地页与外部素材预期不符，产生落差导致跳出",base:0.5},
+  ],
+  "转化率":[
+    {dim:"激励机制",txt:"优惠力度或奖品吸引力不足，未达到用户「值得行动」的心理阈值",base:0.8},
+    {dim:"门槛设置",txt:"转化路径存在信任/支付/凑单等摩擦，临门一脚流失",base:0.6},
+    {dim:"时机选择",txt:"未设置紧迫感（倒计时/限量），用户「再想想」后未回流",base:0.52},
+  ],
+  "分享率":[
+    {dim:"激励机制",txt:"分享激励不明确或收益延迟，用户缺乏转发动机",base:0.78},
+    {dim:"文案吸引力",txt:"分享素材缺乏社交货币（炫耀/利他/情绪），不值得发朋友圈",base:0.62},
+    {dim:"门槛设置",txt:"分享路径过深或需多次操作，转发意愿被流程消耗",base:0.5},
+  ],
+};
+
+// 各环节针对性改进建议库（含影响/难度/预期方向）
+const FIX_RULES = {
+  "点击率":[
+    {t:"重做主标题与首图钩子",e:"用「利益前置+数字+紧迫」公式重写标题，A/B 测试 3 版主视觉素材",imp:3,dif:1,gain:"点击率预期回升 20%-40%"},
+    {t:"优化推送时段",e:"依据该渠道历史活跃曲线，改到目标人群在线高峰投放",imp:2,dif:1,gain:"触达打开率提升 10%-20%"},
+    {t:"利益点前置到首屏",e:"将核心福利（免费/立减/限量）放到第一屏可见位置",imp:3,dif:1,gain:"点击动机增强，CTR 提升 15%+"},
+  ],
+  "参与率":[
+    {t:"精简参与步骤",e:"把参与流程压缩到 3 步以内，非必要信息延后收集",imp:3,dif:2,gain:"参与率预期提升 25%-45%"},
+    {t:"落地页首屏提速与去授权",e:"压缩首屏资源、去掉强制注册/授权，改为参与后再引导",imp:3,dif:2,gain:"跳出率下降，参与率回升 20%+"},
+    {t:"统一素材与落地页预期",e:"让落地页承接外部素材的承诺，消除心理落差",imp:2,dif:1,gain:"跳出率下降 10%-15%"},
+  ],
+  "转化率":[
+    {t:"加码核心激励",e:"提升优惠力度或增设阶梯奖励，跨过「值得行动」心理阈值",imp:3,dif:2,gain:"转化率预期提升 20%-35%"},
+    {t:"设置紧迫感机制",e:"加入倒计时、限量库存、实时战报制造 FOMO",imp:3,dif:1,gain:"临门转化提升 15%-25%"},
+    {t:"降低转化摩擦",e:"简化支付/凑单、补充信任背书（销量、评价、保障）",imp:2,dif:2,gain:"流失挽回 10%-20%"},
+  ],
+  "分享率":[
+    {t:"重设分享激励",e:"改为即时可见收益（分享立得/助力解锁），明确告知回报",imp:3,dif:2,gain:"分享率预期提升 30%-50%"},
+    {t:"打造社交货币素材",e:"生成带用户成就/身份/情绪的专属分享卡，值得晒",imp:2,dif:2,gain:"自发转发量提升 20%+"},
+    {t:"缩短分享路径",e:"一键转发到朋友圈/群，减少操作步骤与跳转",imp:2,dif:1,gain:"分享转化提升 10%-18%"},
+  ],
+};
+
+/* ============================================================
+   UI 初始化
+   ============================================================ */
+let curType = "fission";
+const $ = s => document.querySelector(s);
+
+// 活动类型选择
+const typePicker = $("#typePicker");
+Object.entries(TYPE_BASE).forEach(([k,v])=>{
+  const d = document.createElement("div");
+  d.className = "type-opt" + (k===curType?" on":"");
+  d.dataset.k = k;
+  d.innerHTML = `<span class="ic">${v.ic}</span><span class="nm">${v.nm}</span><span class="ds">${v.ds}</span>`;
+  d.onclick = ()=>{ curType=k; [...typePicker.children].forEach(c=>c.classList.toggle("on",c.dataset.k===k)); };
+  typePicker.appendChild(d);
+});
+
+// 渠道下拉
+const channelSel = $("#channel");
+Object.keys(CHANNELS).forEach(c=>{
+  const o = document.createElement("option"); o.value=c; o.textContent=c; channelSel.appendChild(o);
+});
+channelSel.value = "微信社群";
+
+// 环节输入
+const stageRows = $("#stageRows");
+STAGES.forEach((s,i)=>{
+  const row = document.createElement("div");
+  row.className="stage-row";
+  row.innerHTML = `<span class="lab"><span class="dot" style="background:${STAGE_COLORS[i]}"></span>${s}</span>
+                   <input type="number" min="0" id="s_${i}" placeholder="${s}人次" />`;
+  stageRows.appendChild(row);
+});
+
+/* ============================================================
+   诊断引擎
+   ============================================================ */
+function diagnose(){
+  const vals = STAGES.map((_,i)=>Number($("#s_"+i).value));
+  // 校验
+  for(let i=0;i<vals.length;i++){
+    if(!(vals[i]>=0) || isNaN(vals[i])){ return toast("请填写「"+STAGES[i]+"」的有效人次"); }
+  }
+  if(vals[0]<=0){ return toast("「曝光」人次需大于 0"); }
+  for(let i=1;i<vals.length;i++){
+    if(vals[i]>vals[i-1]){ return toast("「"+STAGES[i]+"」人次不应大于上一环节「"+STAGES[i-1]+"」"); }
+  }
+
+  const channel = channelSel.value;
+  const mod = CHANNELS[channel];
+  const typeInfo = TYPE_BASE[curType];
+
+  // 计算当前转化率 & 基线（基线 = 类型基线 × 渠道系数，转化率上限 100%）
+  const analysis = TRANS.map((t,i)=>{
+    const cur = vals[i]>0 ? vals[i+1]/vals[i] : 0;
+    const base = Math.min(0.98, (typeInfo.rates[i]/100) * mod);
+    const dev = base>0 ? (cur-base)/base : 0; // 偏差比例
+    return { ...t, cur, base, dev, curCnt:vals[i+1], fromCnt:vals[i], anomaly: dev < THRESHOLD };
+  });
+
+  render(vals, analysis, channel, typeInfo);
+}
+
+/* ============================================================
+   渲染
+   ============================================================ */
+function render(vals, analysis, channel, typeInfo){
+  $("#emptyState").style.display="none";
+  $("#result").classList.add("show");
+
+  const anomalies = analysis.filter(a=>a.anomaly);
+  // 健康分：从 100 扣除各环节下跌惩罚
+  let score = 100;
+  analysis.forEach(a=>{ if(a.dev<0) score += a.dev*55; });
+  score = Math.max(30, Math.min(100, Math.round(score)));
+
+  // verdict
+  const v = $("#verdict");
+  let vc,vt,vd;
+  if(anomalies.length===0){ vc="v-good"; vt="漏斗整体健康 ✅"; vd="各环节转化率均达到或超过同渠道同类型历史均值，本次活动结构良好，可沉淀为标杆模板。"; }
+  else if(anomalies.length===1){ vc="v-warn"; vt="发现 1 个卡脖子环节 ⚠️"; vd=`「${anomalies[0].name}」显著低于历史均值，是本次拉低整体效果的关键堵点，建议优先攻克。`; }
+  else { vc="v-bad"; vt=`发现 ${anomalies.length} 个卡脖子环节 🚨`; vd=`「${anomalies.map(a=>a.name).join("、")}」均显著低于历史均值，漏斗存在多点漏损，请对照下方优先级清单逐项改进。`; }
+  v.className="verdict "+vc;
+  v.innerHTML = `<div class="score"><b>${score}</b><span>健康分</span></div>
+                 <div class="txt"><h3>${vt}</h3><p>${vd}</p></div>
+                 <div class="acts"><button id="pdfBtn">📄 导出 PDF 报告</button></div>`;
+  $("#pdfBtn").onclick = exportPDF;
+
+  $("#funnelSub").textContent = `${typeInfo.nm} · ${channel} · 基线已按渠道校准`;
+
+  // funnel
+  const funnel = $("#funnel");
+  funnel.innerHTML="";
+  const maxV = vals[0]||1;
+  vals.forEach((cnt,i)=>{
+    const st = document.createElement("div");
+    st.className="fstage";
+    const h = Math.max(8, Math.round((cnt/maxV)*150));
+    const a = i<4 ? analysis[i] : null; // 转化率气泡显示在环节之间（放在当前 stage 右侧）
+    let convHtml="";
+    if(i<4){
+      const cls = analysis[i].anomaly ? "down" : (analysis[i].dev>0.05?"up":"");
+      const sign = analysis[i].dev>=0?"+":"";
+      convHtml = `<div class="conv">
+        <div class="arw">▸</div>
+        <div class="pill ${cls}">${(analysis[i].cur*100).toFixed(1)}%</div>
+        <div class="base">均值 ${(analysis[i].base*100).toFixed(1)}% · ${sign}${(analysis[i].dev*100).toFixed(0)}%</div>
+      </div>`;
+    }
+    const isAnom = i>0 && analysis[i-1] && analysis[i-1].anomaly;
+    st.innerHTML = `<div class="fbar-box"><div class="fbar ${isAnom?'anom':''}" style="height:${h}px"><span class="cnt">${cnt.toLocaleString()}</span></div></div>
+                    <div class="snm">${STAGES[i]}</div>${convHtml}`;
+    funnel.appendChild(st);
+  });
+
+  // causes
+  const causesBox = $("#causes");
+  causesBox.innerHTML="";
+  if(anomalies.length===0){
+    causesBox.innerHTML = `<div style="text-align:center;color:var(--ink-faint);padding:20px 0;font-size:14px">🎉 未检测到显著下跌环节，暂无异常原因推测。</div>`;
+  } else {
+    anomalies.forEach(a=>{
+      const rules = (CAUSE_RULES[a.name]||[]).slice();
+      // 置信度 = 基础置信度 × (1 + 下跌幅度加权)，越跌越确信
+      const sev = Math.min(1, Math.abs(a.dev)*1.6);
+      rules.forEach(r=> r._conf = Math.min(0.96, r.base*(0.7+0.5*sev)) );
+      rules.sort((x,y)=>y._conf-x._conf);
+      const c = document.createElement("div");
+      c.className="cause";
+      c.innerHTML = `<div class="cause-h">
+          <span class="stg">${a.name}</span>
+          <span class="dev">↓ 低于均值 ${Math.abs(a.dev*100).toFixed(0)}%</span>
+          <span class="dim">当前 ${(a.cur*100).toFixed(1)}% · 均值 ${(a.base*100).toFixed(1)}%</span>
+        </div>
+        <div class="cause-body">${rules.map(r=>{
+          const conf=Math.round(r._conf*100);
+          const cd = conf>=75?"cd-hi":conf>=55?"cd-md":"cd-lo";
+          return `<div class="cn"><span class="cd ${cd}">置信 ${conf}%</span><span>【${r.dim}】${r.txt}</span></div>`;
+        }).join("")}</div>`;
+      causesBox.appendChild(c);
+    });
+  }
+
+  // improvements
+  buildFixes(anomalies, analysis);
+}
+
+let ALL_FIXES=[];
+function buildFixes(anomalies, analysis){
+  ALL_FIXES=[];
+  const targets = anomalies.length? anomalies : analysis.filter(a=>a.dev<0.03).sort((x,y)=>x.dev-y.dev).slice(0,1);
+  const seen = new Set();
+  (anomalies.length?anomalies:targets).forEach(a=>{
+    (FIX_RULES[a.name]||[]).forEach(f=>{
+      // 优先级分：影响权重高 → 影响*2 - 难度；速赢=高影响低难度
+      const priority = f.imp*2.2 - f.dif*1.1 + Math.abs(a.dev)*2;
+      const isWin = f.imp>=3 && f.dif<=1;
+      const isHard = f.imp>=3 && f.dif>=3;
+      const isOptim = !isWin && !isHard;
+      const key=f.t; if(seen.has(key))return; seen.add(key);
+      ALL_FIXES.push({...f, stage:a.name, dev:a.dev, priority, isWin, isHard, isOptim});
+    });
+  });
+  ALL_FIXES.sort((x,y)=>y.priority-x.priority);
+  renderFixes("all");
+}
+
+function renderFixes(filter){
+  const box=$("#cards"); box.innerHTML="";
+  let list = ALL_FIXES;
+  if(filter==="win") list = ALL_FIXES.filter(f=>f.isWin);
+  if(filter==="hard") list = ALL_FIXES.filter(f=>f.isHard);
+  if(filter==="optim") list = ALL_FIXES.filter(f=>f.isOptim);
+  if(!list.length){ box.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--ink-faint);padding:24px 0;font-size:14px">该分类下暂无条目～</div>`; return; }
+  list.forEach((f,i)=>{
+    const badge = f.isWin?`<span class="badge b-win">⚡ 速赢项</span>`
+                : f.isHard?`<span class="badge b-hard">🛠 攻坚项</span>`
+                : `<span class="badge b-norm">🎯 优化项</span>`;
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML = `<span class="rank">P${i+1}</span>
+      ${badge}
+      <h4>${f.t}</h4>
+      <p class="exp"><span style="color:var(--bad);font-weight:700">[${f.stage}]</span> ${f.e}</p>
+      <div class="metrics">
+        <span class="m">影响 <span class="bars imp">${bars(f.imp)}</span></span>
+        <span class="m">难度 <span class="bars dif">${bars(f.dif)}</span></span>
+      </div>
+      <div class="gain">📈 ${f.gain}</div>`;
+    box.appendChild(card);
+  });
+}
+function bars(n){ let s=""; for(let i=1;i<=3;i++) s+=`<i class="${i<=n?'f':''}"></i>`; return s; }
+
+/* filter buttons */
+$("#filter").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  [...$("#filter").children].forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); renderFixes(b.dataset.f);
+});
+
+/* toast */
+let toastTimer;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2600);
+}
+
+/* ============================================================
+   导出 PDF 报告（调用浏览器打印，可另存为 PDF，零依赖）
+   ============================================================ */
+function exportPDF(){
+  if(!$("#result").classList.contains("show")){ return toast("请先完成诊断再导出报告"); }
+  const name = $("#actName").value.trim() || "活动复盘诊断报告";
+  const oldTitle = document.title;
+  document.title = name + " · 活动复盘找茬器";
+  // 打印前先隐藏 toast，避免提示文字被一并打进 PDF
+  $("#toast").classList.remove("show");
+  clearTimeout(toastTimer);
+  setTimeout(()=>{ window.print(); document.title = oldTitle; toast("如需保存，请在打印弹窗中选择「另存为 PDF」"); }, 150);
+}
+
+/* ============================================================
+   回到顶部
+   ============================================================ */
+const backTop = $("#backTop");
+window.addEventListener("scroll", ()=>{
+  backTop.classList.toggle("show", window.scrollY > 320);
+});
+backTop.onclick = ()=> window.scrollTo({top:0, behavior:"smooth"});
+
+/* actions */
+$("#runBtn").onclick = diagnose;
+$("#demoBtn").onclick = ()=>{
+  // 载入一个「参与率」和「转化率」明显下跌的裂变示例
+  curType="fission";
+  [...typePicker.children].forEach(c=>c.classList.toggle("on",c.dataset.k==="fission"));
+  channelSel.value="微信社群";
+  $("#actName").value="双11社群裂变引流活动";
+  const demo=[120000, 9600, 2400, 480, 96]; // 参与率/转化率偏低
+  demo.forEach((v,i)=>$("#s_"+i).value=v);
+  diagnose();
+  window.scrollTo({top:0,behavior:"smooth"});
+};
+</script>
+</body>
+</html>
